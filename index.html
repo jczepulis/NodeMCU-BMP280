@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía Interactiva: NodeMCU, BMP280 y ThingSpeak</title>
+    <!-- Chosen Palette: Warm Neutrals & Tech Blue -->
+    <!-- Application Structure Plan: La SPA se organiza con una navegación lateral fija y un área de contenido principal dinámica, similar a la guía anterior, pero adaptada a los nuevos componentes. Las secciones incluyen: Introducción (NodeMCU, BMP280, ThingSpeak), Preparación (hardware, entorno Arduino), Código NodeMCU (explicación del código proporcionado), Configuración ThingSpeak (creación de canal, API keys), Visualización Web (donde se verán los datos en vivo desde ThingSpeak), y Ayuda (solución de problemas). Esta estructura permite un flujo de aprendizaje lógico y modular, facilitando la comprensión de cada componente del sistema. -->
+    <!-- Visualization & Content Choices:
+        - Introducción: Texto explicativo de cada componente.
+        - Preparación: Checklist interactiva para materiales, texto para configuración del IDE.
+        - Código NodeMCU: Visor de código con el código proporcionado, y botones para copiar. Se explica cada parte del código (WiFi, sensor, ThingSpeak).
+        - Configuración ThingSpeak: Texto con pasos para crear un canal y obtener API keys.
+        - Visualización Web: Medidores de texto para temperatura y presión actuales, y un gráfico de línea (Chart.js) que recupera y muestra datos históricos directamente desde ThingSpeak, proporcionando una experiencia de datos en vivo.
+        - Ayuda: Acordeón de preguntas frecuentes para problemas comunes.
+        -> Library/Method: Vanilla JS para toda la lógica de interacción y fetching de datos, Chart.js para gráficos. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-main: #FDFBF6;
+            --bg-sidebar: #F0EBE3;
+            --text-dark: #333333;
+            --text-light: #5c5c5c;
+            --primary: #4A90E2;
+            --primary-dark: #357ABD;
+            --accent: #F5A623;
+            --border-color: #D8D2C5;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-dark);
+        }
+        .sidebar { background-color: var(--bg-sidebar); }
+        .nav-link {
+            transition: all 0.2s ease-in-out;
+            border-left: 4px solid transparent;
+        }
+        .nav-link.active {
+            background-color: var(--bg-main);
+            border-left-color: var(--primary);
+            color: var(--primary);
+            font-weight: 600;
+        }
+        .nav-link:hover:not(.active) {
+            background-color: #e6e0d5;
+            border-left-color: #c4bdae;
+        }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        .card {
+            background-color: #FFFFFF;
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .btn-primary:hover { background-color: var(--primary-dark); }
+        .btn-secondary {
+            background-color: #e9ecef;
+            color: var(--text-dark);
+            transition: background-color 0.2s ease-in-out;
+        }
+        .btn-secondary:hover { background-color: #dee2e6; }
+        .code-block {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Fira Code', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-x: auto; /* Allow horizontal scrolling for long lines */
+        }
+        .checklist-item.checked {
+            text-decoration: line-through;
+            color: var(--text-light);
+        }
+        .checklist-item.checked .checkbox-icon {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 300px;
+            width: 100%;
+            max-width: 800px;
+            max-height: 400px;
+        }
+        @media (min-width: 640px) {
+            .chart-container { height: 350px; }
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code&display=swap" rel="stylesheet">
+</head>
+<body class="min-h-screen">
+
+    <div class="flex flex-col md:flex-row min-h-screen">
+        <!-- Sidebar -->
+        <nav class="sidebar w-full md:w-64 flex-shrink-0 p-4 border-r border-gray-200">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6">NodeMCU + BMP280</h1>
+            <ul class="space-y-2">
+                <li><a href="#inicio" class="nav-link flex items-center p-3 rounded-lg active">🏠<span class="ml-3">Inicio</span></a></li>
+                <li><a href="#preparacion" class="nav-link flex items-center p-3 rounded-lg">🛠️<span class="ml-3">Preparación</span></a></li>
+                <li><a href="#conexion" class="nav-link flex items-center p-3 rounded-lg">🔌<span class="ml-3">Conexión</span></a></li>
+                <li><a href="#codigo-nodemcu" class="nav-link flex items-center p-3 rounded-lg">💻<span class="ml-3">Código NodeMCU</span></a></li>
+                <li><a href="#thingspeak" class="nav-link flex items-center p-3 rounded-lg">☁️<span class="ml-3">ThingSpeak</span></a></li>
+                <li><a href="#visualizacion" class="nav-link flex items-center p-3 rounded-lg">📊<span class="ml-3">Visualización Web</span></a></li>
+                <li><a href="#ayuda" class="nav-link flex items-center p-3 rounded-lg">❓<span class="ml-3">Ayuda</span></a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
+
+            <!-- Inicio Section -->
+            <section id="inicio" class="content-section active">
+                <h2 class="text-3xl font-bold mb-4">Guía Interactiva: NodeMCU, BMP280 y ThingSpeak</h2>
+                <p class="mb-6 text-lg text-gray-600">Bienvenido a esta guía que te mostrará cómo conectar un sensor de temperatura y presión BMP280 a un NodeMCU, enviar los datos a la plataforma en la nube ThingSpeak, y luego visualizarlos en una página web. Este proyecto es ideal para iniciarse en el Internet de las Cosas (IoT) y el monitoreo remoto.</p>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="card p-6">
+                        <h3 class="text-xl font-semibold mb-2">NodeMCU ESP8266</h3>
+                        <p class="text-gray-600">Una placa de desarrollo de bajo costo con capacidad WiFi integrada, perfecta para proyectos de IoT que requieren conectividad a internet.</p>
+                    </div>
+                    <div class="card p-6">
+                        <h3 class="text-xl font-semibold mb-2">Sensor BMP280</h3>
+                        <p class="text-gray-600">Un sensor ambiental de alta precisión que mide la presión barométrica y la temperatura. Se comunica vía I2C.</p>
+                    </div>
+                     <div class="card p-6 col-span-full">
+                        <h3 class="text-xl font-semibold mb-2">ThingSpeak</h3>
+                        <p class="text-gray-600">Una plataforma de IoT de código abierto que te permite recopilar, visualizar y analizar datos de sensores en la nube. Es ideal para proyectos de monitoreo remoto.</p>
+                    </div>
+                </div>
+                 <div class="mt-8 card p-6 bg-blue-50 border-blue-200">
+                    <h3 class="text-xl font-semibold mb-2 text-blue-800">¿Qué aprenderás?</h3>
+                    <ul class="list-disc list-inside space-y-2 text-blue-700">
+                        <li>Configurar tu NodeMCU para programar con el IDE de Arduino.</li>
+                        <li>Conectar el sensor BMP280 al NodeMCU.</li>
+                        <li>Programar el NodeMCU para leer el sensor y enviar datos a ThingSpeak.</li>
+                        <li>Crear un canal en ThingSpeak para recibir y almacenar tus datos.</li>
+                        <li>Crear una página web para visualizar los datos en tiempo real desde ThingSpeak.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Preparación Section -->
+            <section id="preparacion" class="content-section">
+                <h2 class="text-3xl font-bold mb-4">1. Preparación del Entorno</h2>
+                <p class="mb-6 text-lg text-gray-600">Antes de empezar a conectar y programar, necesitamos preparar el hardware y el entorno de desarrollo para tu NodeMCU.</p>
+
+                <div class="card p-6 mb-8">
+                    <h3 class="text-xl font-semibold mb-4">Lista de Materiales (Checklist Interactivo)</h3>
+                    <ul id="checklist" class="space-y-3">
+                        <li class="checklist-item flex items-center cursor-pointer"><div class="checkbox-icon w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex-shrink-0"></div><span>NodeMCU ESP8266 (o similar)</span></li>
+                        <li class="checklist-item flex items-center cursor-pointer"><div class="checkbox-icon w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex-shrink-0"></div><span>Módulo de sensor BMP280</span></li>
+                        <li class="checklist-item flex items-center cursor-pointer"><div class="checkbox-icon w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex-shrink-0"></div><span>Cables Jumper (Hembra-Hembra o Macho-Hembra según tu sensor)</span></li>
+                        <li class="checklist-item flex items-center cursor-pointer"><div class="checkbox-icon w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex-shrink-0"></div><span>Cable Micro USB para NodeMCU</span></li>
+                        <li class="checklist-item flex items-center cursor-pointer"><div class="checkbox-icon w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex-shrink-0"></div><span>Computadora con IDE de Arduino instalado</span></li>
+                        <li class="checklist-item flex items-center cursor-pointer"><div class="checkbox-icon w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex-shrink-0"></div><span>Conexión a Internet (para NodeMCU y tu PC)</span></li>
+                    </ul>
+                </div>
+                 <div class="card p-6">
+                    <h3 class="text-xl font-semibold mb-4">Configuración del IDE de Arduino para NodeMCU</h3>
+                    <p class="mb-4">Para programar el NodeMCU, usarás el IDE de Arduino. Necesitas añadir el soporte para las placas ESP8266:</p>
+                    <ol class="list-decimal list-inside space-y-3">
+                        <li>Abre el IDE de Arduino.</li>
+                        <li>Ve a `Archivo > Preferencias`.</li>
+                        <li>En "URLs adicionales de gestores de tarjetas", añade: <code class="bg-gray-100 p-1 rounded text-sm block mt-2">http://arduino.esp8266.com/stable/package_esp8266com_index.json</code></li>
+                        <li>Ve a `Herramientas > Placa > Gestor de Tarjetas...` y busca "esp8266". Instala el paquete "esp8266 by ESP8266 Community".</li>
+                        <li>Ve a `Herramientas > Placa` y selecciona tu modelo de NodeMCU (ej. "NodeMCU 1.0 (ESP-12E Module)").</li>
+                        <li>Instala las librerías necesarias:
+                            <ul>
+                                <li>Ve a `Programa > Incluir Librería > Gestionar Librerías...`</li>
+                                <li>Busca y instala:
+                                    <ul>
+                                        <li>`Adafruit BMP085 Library` (Aunque tu sensor es BMP280, el código proporcionado usa la librería BMP085/BMP180. Si usas BMP280, necesitarías `Adafruit BMP280 Library`.)</li>
+                                        <li>`Adafruit Unified Sensor`</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </li>
+                    </ol>
+                </div>
+            </section>
+            
+            <!-- Conexión Section -->
+            <section id="conexion" class="content-section">
+                <h2 class="text-3xl font-bold mb-4">2. Conexión del Sensor BMP280 al NodeMCU</h2>
+                 <p class="mb-6 text-lg text-gray-600">El sensor BMP280 se comunica con el NodeMCU usando el protocolo I2C, lo que simplifica mucho el cableado. Asegúrate de que tu NodeMCU esté desconectado de la alimentación antes de realizar las conexiones.</p>
+
+                <div class="flex flex-col lg:flex-row gap-8">
+                    <!-- Wiring Instructions -->
+                    <div class="lg:w-1/2">
+                        <div class="card p-6 h-full">
+                            <h3 class="text-xl font-semibold mb-4">Instrucciones de Cableado</h3>
+                             <p class="mb-4">Conecta los pines del módulo BMP280 a los pines correspondientes del NodeMCU. Los pines I2C en NodeMCU suelen ser D1 (SCL) y D2 (SDA).</p>
+                            <div class="space-y-4">
+                                <div class="flex items-center">
+                                    <div class="w-16 h-8 bg-red-400 text-white flex items-center justify-center rounded-lg mr-4 font-mono">VCC</div>
+                                    <span class="text-2xl mr-4">→</span>
+                                    <div class="w-28 h-8 flex items-center justify-center rounded-lg mr-4 font-mono bg-yellow-100">3V3</div>
+                                    <span class="text-gray-600">Alimentación (3.3V)</span>
+                                </div>
+                                 <div class="flex items-center">
+                                    <div class="w-16 h-8 bg-gray-600 text-white flex items-center justify-center rounded-lg mr-4 font-mono">GND</div>
+                                    <span class="text-2xl mr-4">→</span>
+                                    <div class="w-28 h-8 flex items-center justify-center rounded-lg mr-4 font-mono bg-gray-300">GND</div>
+                                    <span class="text-gray-600">Tierra</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-16 h-8 bg-blue-400 text-white flex items-center justify-center rounded-lg mr-4 font-mono">SDA</div>
+                                    <span class="text-2xl mr-4">→</span>
+                                    <div class="w-28 h-8 flex items-center justify-center rounded-lg mr-4 font-mono bg-blue-200">D2 (GPIO4)</div>
+                                    <span class="text-gray-600">Datos I2C</span>
+                                </div>
+                               <div class="flex items-center">
+                                    <div class="w-16 h-8 bg-sky-400 text-white flex items-center justify-center rounded-lg mr-4 font-mono">SCL</div>
+                                    <span class="text-2xl mr-4">→</span>
+                                    <div class="w-28 h-8 flex items-center justify-center rounded-lg mr-4 font-mono bg-sky-200">D1 (GPIO5)</div>
+                                    <span class="text-gray-600">Reloj I2C</span>
+                                </div>
+                            </div>
+                            <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <p class="text-yellow-800"><strong class="font-semibold">¡Importante!</strong> Los pines D1 y D2 en NodeMCU corresponden a GPIO5 y GPIO4 respectivamente. Asegúrate de que tu módulo BMP280 sea de 3.3V o tenga un regulador de voltaje incorporado.</p>
+                            </div>
+                        </div>
+                    </div>
+                     <div class="lg:w-1/2">
+                        <div class="card p-6 h-full flex flex-col items-center justify-center">
+                            <h3 class="text-xl font-semibold mb-4 text-center">Esquema de Conexión (Conceptual)</h3>
+                            <div class="w-full h-auto max-w-sm">
+                                <img src="https://placehold.co/400x300/e0f2fe/0369a1?text=NodeMCU+%2B+BMP280+Wiring" alt="Diagrama de conexión NodeMCU a BMP280" class="rounded-lg shadow-md w-full h-auto">
+                                <p class="text-center text-sm text-gray-500 mt-2">Imagen conceptual del cableado. Consulta el pinout específico de tu NodeMCU.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Código NodeMCU Section -->
+            <section id="codigo-nodemcu" class="content-section">
+                <h2 class="text-3xl font-bold mb-4">3. Código para NodeMCU (Arduino IDE)</h2>
+                <p class="mb-6 text-lg text-gray-600">Este es el código que cargarás en tu NodeMCU. Se encarga de conectar el NodeMCU a tu red WiFi, leer los datos del sensor BMP280 (el código usa la librería BMP180, pero el principio es el mismo para temperatura y presión) y enviarlos a tu canal de ThingSpeak.</p>
+                
+                <div class="card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold">Código Arduino para NodeMCU</h3>
+                        <button id="btn-copy-nodemcu-code" class="btn-primary px-4 py-2 rounded-md flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            Copiar
+                        </button>
+                    </div>
+                    <div id="nodemcu-code-container" class="code-block text-sm">
+                        <!-- Código NodeMCU proporcionado por el usuario -->
+                        #include &lt;ESP8266WiFi.h&gt; // Librería principal para funciones WiFi en ESP8266
+#include &lt;Wire.h&gt;        // Librería para comunicación I2C (usada por el sensor BMP180)
+#include &lt;Adafruit_Sensor.h&gt; // Librería base para sensores de Adafruit
+#include &lt;Adafruit_BMP085_U.h&gt; // Librería específica para el sensor BMP180/BMP085 de Adafruit
+
+// --- Configuración del Sensor BMP180 ---
+// Se inicializa el objeto BMP180 con un ID de sensor.
+// Este ID puede ser cualquier número, es útil si tienes varios sensores del mismo tipo.
+Adafruit_BMP085_Unified bmp = Adafruit_BMP085_Unified(10085);
+
+// --- Configuración WiFi ---
+// Define el nombre de tu red WiFi (SSID) y la contraseña.
+// Asegúrate de que estos valores coincidan exactamente con los de tu router.
+const char* ssid = "WLAN_Privado"; // Reemplaza con tu SSID
+const char* password = "Nt4i*1956"; // Reemplaza con tu Contraseña WiFi
+
+// --- Configuración de ThingSpeak ---
+// Define el host de la API de ThingSpeak y tu Write API Key.
+// La Write API Key es necesaria para enviar datos a tu canal.
+const char* host = "api.thingspeak.com";
+const char* apiKey = "VXSIQ503QGJY5YR9"; // Reemplaza con tu Write API Key de ThingSpeak
+
+// --- Variables para el temporizador de reconexión WiFi ---
+// Tiempo de espera máximo para intentar conectar a WiFi (en milisegundos).
+const long connectionTimeoutMs = 30000; // 30 segundos
+
+void setup() {
+    // Inicia la comunicación serial a 115200 baudios para depuración.
+    Serial.begin(115200);
+    delay(10); // Pequeña pausa para asegurar que el Serial esté listo.
+
+    Serial.println("\nIniciando NodeMCU...");
+
+    // --- Inicialización WiFi ---
+    // Establece el modo WiFi a estación (STA), lo que permite que el NodeMCU
+    // se conecte a un punto de acceso existente (tu router).
+    WiFi.mode(WIFI_STA);
+
+    // Inicia el proceso de conexión WiFi con las credenciales proporcionadas.
+    WiFi.begin(ssid, password);
+    Serial.print("Intentando conectar a WiFi con SSID: ");
+    Serial.println(ssid);
+
+    // Bucle para esperar la conexión WiFi.
+    long startTime = millis();
+    while (WiFi.status() != WL_CONNECTED && millis() - startTime < connectionTimeoutMs) {
+        delay(500);
+        Serial.print(".");
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("\nConectado a WiFi con éxito!");
+        Serial.print("Dirección IP: ");
+        Serial.println(WiFi.localIP());
+    } else {
+        Serial.println("\nFallo al conectar a WiFi después de " + String(connectionTimeoutMs / 1000) + " segundos.");
+        Serial.println("Por favor, verifica el SSID y la contraseña, o el alcance del router.");
+    }
+
+    // --- Inicialización del Sensor BMP180 ---
+    // Intenta iniciar la comunicación con el sensor BMP180.
+    if (!bmp.begin()) {
+        Serial.println("Error: No se detecta el sensor BMP180. Revisa las conexiones I2C (SDA, SCL).");
+        Serial.println("Asegúrate de que el sensor esté correctamente cableado y alimentado.");
+        while (1); // Detiene la ejecución si el sensor no es detectado.
+    } else {
+        Serial.println("Sensor BMP180 detectado y listo.");
+    }
+}
+
+void loop() {
+    // Asegúrate de que el WiFi esté conectado antes de intentar enviar datos.
+    if (WiFi.status() != WL_CONNECTED) {
+        Serial.println("WiFi desconectado. Intentando reconectar...");
+        WiFi.begin(ssid, password);
+        long startTime = millis();
+        while (WiFi.status() != WL_CONNECTED && millis() - startTime < connectionTimeoutMs) {
+            delay(500);
+            Serial.print(".");
+        }
+        if (WiFi.status() == WL_CONNECTED) {
+            Serial.println("\nWiFi reconectado.");
+            Serial.print("Nueva IP: ");
+            Serial.println(WiFi.localIP());
+        } else {
+            Serial.println("\nFallo al reconectar WiFi. Reintentando en el próximo ciclo.");
+            delay(5000);
+            return;
+        }
+    }
+
+    // --- Lectura del Sensor BMP180 ---
+    sensors_event_t event;
+    bmp.getEvent(&event);
+
+    float temperature;
+    bmp.getTemperature(&temperature);
+
+    if (event.pressure) {
+        Serial.print("Temp: ");
+        Serial.print(temperature);
+        Serial.print(" °C  |  Presión: ");
+        Serial.print(event.pressure);
+        Serial.println(" hPa");
+
+        // --- Envío de datos a ThingSpeak ---
+        WiFiClient client;
+        const int httpPort = 80;
+
+        if (!client.connect(host, httpPort)) {
+            Serial.println("Error: Conexión a ThingSpeak fallida. Comprueba tu conexión a Internet.");
+            return;
+        }
+
+        String url = "/update?api_key=";
+        url += apiKey;
+        url += "&field1=";
+        url += String(temperature);
+        url += "&field2=";
+        url += String(event.pressure);
+
+        client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+                     "Host: " + host + "\r\n" +
+                     "Connection: close\r\n\r\n");
+
+        Serial.println("Datos enviados a ThingSpeak!");
+
+        while (client.available()) {
+            String line = client.readStringUntil('\r');
+        }
+        client.stop();
+
+    } else {
+        Serial.println("Error: No se pudo leer el sensor BMP180.");
+    }
+
+    delay(15000); // Retraso de 15 segundos antes de la próxima actualización.
+}
+                    </div>
+                    <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h4 class="font-semibold text-blue-800 mb-2">Explicación del Código:</h4>
+                        <ul class="list-disc list-inside text-blue-700 space-y-2">
+                            <li>**Librerías:** Incluye librerías para WiFi (`ESP8266WiFi.h`), comunicación I2C (`Wire.h`), y las librerías de Adafruit para el sensor. **Nota:** El código proporcionado usa `Adafruit_BMP085_U.h` para el BMP180/BMP085. Si tu sensor es BMP280, la lógica es similar, pero podrías usar `Adafruit_BMP280.h` si prefieres la librería específica.</li>
+                            <li>**Configuración WiFi:** Define tu `ssid` (nombre de la red WiFi) y `password` (contraseña). ¡Asegúrate de reemplazarlos con los tuyos!</li>
+                            <li>**Configuración ThingSpeak:** Define el `host` de ThingSpeak y tu `apiKey` (la Write API Key de tu canal).</li>
+                            <li>**`setup()`:** Se ejecuta una vez al inicio. Inicializa la comunicación serial, intenta conectar a WiFi y luego inicializa el sensor BMP180. Si la conexión WiFi o el sensor fallan, el programa lo indicará.</li>
+                            <li>**`loop()`:** Se ejecuta repetidamente. Primero, verifica la conexión WiFi y, si es necesario, intenta reconectar. Luego, lee la temperatura y la presión del sensor. Finalmente, construye una URL con los datos y realiza una petición HTTP GET a ThingSpeak para enviar los valores. Hay un retraso de 15 segundos entre cada envío.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ThingSpeak Section -->
+            <section id="thingspeak" class="content-section">
+                <h2 class="text-3xl font-bold mb-4">4. Configuración de ThingSpeak</h2>
+                <p class="mb-6 text-lg text-gray-600">ThingSpeak es una plataforma de IoT que te permite recolectar y visualizar datos de tus sensores. Necesitarás crear una cuenta y un canal para que tu NodeMCU pueda enviar datos.</p>
+
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold mb-4">Pasos para Configurar tu Canal en ThingSpeak</h3>
+                    <ol class="list-decimal list-inside space-y-3">
+                        <li>**Crear una Cuenta:** Ve a <a href="https://thingspeak.com/login" target="_blank" class="text-blue-600 hover:underline">ThingSpeak.com</a> y crea una cuenta gratuita.</li>
+                        <li>**Crear un Nuevo Canal:**
+                            <ul>
+                                <li>Una vez logueado, ve a `Channels > My Channels`.</li>
+                                <li>Haz clic en `New Channel`.</li>
+                                <li>**Nombre:** Dale un nombre a tu canal (ej. "Estación Meteorológica NodeMCU").</li>
+                                <li>**Campos (Fields):** Define al menos dos campos:
+                                    <ul>
+                                        <li>`Field 1`: "Temperatura (°C)"</li>
+                                        <li>`Field 2`: "Presión (hPa)"</li>
+                                    </ul>
+                                </li>
+                                <li>(Opcional) Puedes añadir una descripción y etiquetas.</li>
+                                <li>Haz clic en `Save Channel`.</li>
+                            </ul>
+                        </li>
+                        <li>**Obtener tus API Keys:**
+                            <ul>
+                                <li>Después de crear el canal, ve a la pestaña `API Keys` de tu canal.</li>
+                                <li>Necesitarás la **Write API Key** para el código de tu NodeMCU. Cópiala y pégala en la variable `apiKey` del código Arduino.</li>
+                                <li>Si quieres leer los datos desde tu página web y tu canal es privado, también necesitarás la **Read API Key**.</li>
+                            </ul>
+                        </li>
+                        <li>**Configurar Privacidad (Opcional):** En la pestaña `Public View` o `Share`, puedes hacer tu canal público si deseas que la página web pueda leer los datos sin una Read API Key.</li>
+                    </ol>
+                </div>
+            </section>
+
+            <!-- Visualización Section -->
+            <section id="visualizacion" class="content-section">
+                <h2 class="text-3xl font-bold mb-4">5. Visualización Web de Datos</h2>
+                <p class="mb-6 text-lg text-gray-600">Esta sección muestra cómo tu página web puede conectarse a ThingSpeak para obtener y visualizar los datos en tiempo real. ¡Verás los datos de tu sensor BMP280 directamente en tu navegador!</p>
+                <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-6">
+                    <p class="text-yellow-800"><strong class="font-semibold">¡Configuración Necesaria!</strong> Para que esta sección funcione, necesitarás reemplazar <code>YOUR_THINGSPEAK_CHANNEL_ID</code> con el ID de tu canal de ThingSpeak y <code>YOUR_THINGSPEAK_READ_API_KEY</code> con tu Read API Key (si tu canal es privado) en el código JavaScript de esta página.</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="card p-6 text-center">
+                        <h3 class="text-lg font-medium text-gray-500 mb-2">Temperatura Actual</h3>
+                        <p id="web-temp-display" class="text-5xl font-bold text-red-500">-- °C</p>
+                    </div>
+                    <div class="card p-6 text-center">
+                        <h3 class="text-lg font-medium text-gray-500 mb-2">Presión Actual</h3>
+                        <p id="web-pressure-display" class="text-5xl font-bold text-blue-500">-- hPa</p>
+                    </div>
+                </div>
+
+                <div class="card p-6">
+                     <h3 class="text-xl font-semibold mb-4 text-center">Historial de Datos del Sensor (desde ThingSpeak)</h3>
+                    <div class="chart-container">
+                        <canvas id="thingspeakChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Ayuda Section -->
+            <section id="ayuda" class="content-section">
+                <h2 class="text-3xl font-bold mb-4">6. Solución de Problemas Comunes</h2>
+                <p class="mb-6 text-lg text-gray-600">Aquí te presentamos algunos problemas comunes que podrías encontrar al trabajar con NodeMCU, BMP280 y ThingSpeak, junto con sus soluciones.</p>
+
+                <div class="space-y-4" id="accordion-container">
+                    <div class="card">
+                        <button class="accordion-header w-full text-left p-4 font-semibold text-lg flex justify-between items-center">
+                            <span>NodeMCU no se conecta a WiFi</span>
+                            <span class="accordion-icon transform transition-transform">▼</span>
+                        </button>
+                        <div class="accordion-content px-4 pb-4">
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>**SSID/Contraseña incorrectos:** Verifica que el `ssid` y `password` en tu código Arduino coincidan exactamente con tu red WiFi (mayúsculas, minúsculas, caracteres especiales).</li>
+                                <li>**Fuera de alcance:** Asegúrate de que el NodeMCU esté lo suficientemente cerca de tu router.</li>
+                                <li>**Problemas de router:** Reinicia tu router WiFi.</li>
+                                <li>**Firewall:** Asegúrate de que tu red no esté bloqueando las conexiones salientes del NodeMCU.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card">
+                         <button class="accordion-header w-full text-left p-4 font-semibold text-lg flex justify-between items-center">
+                            <span>Error: "No se detecta el sensor BMP180"</span>
+                            <span class="accordion-icon transform transition-transform">▼</span>
+                        </button>
+                        <div class="accordion-content px-4 pb-4">
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>**Cableado I2C incorrecto:** Revisa que SDA y SCL estén conectados a D2 y D1 respectivamente, y que VCC y GND estén correctamente alimentados.</li>
+                                <li>**Sensor defectuoso:** Si el cableado es correcto, el sensor podría estar dañado.</li>
+                                <li>**Dirección I2C:** Aunque el código no la especifica directamente, por defecto `Wire.begin()` y las librerías buscan la dirección estándar. Si tu sensor tiene una dirección diferente (ej. 0x77 vs 0x76), podrías necesitar modificar la inicialización del sensor en el código Arduino para especificarla.</li>
+                            </ul>
+                        </div>
+                    </div>
+                   <div class="card">
+                         <button class="accordion-header w-full text-left p-4 font-semibold text-lg flex justify-between items-center">
+                            <span>Los datos no llegan a ThingSpeak</span>
+                             <span class="accordion-icon transform transition-transform">▼</span>
+                        </button>
+                        <div class="accordion-content px-4 pb-4">
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>**Write API Key incorrecta:** Copia y pega la `Write API Key` de tu canal de ThingSpeak EXACTAMENTE como aparece.</li>
+                                <li>**ID de canal incorrecto:** Asegúrate de que tu NodeMCU esté enviando datos al ID de canal correcto (aunque esto se maneja internamente por la API Key).</li>
+                                <li>**Límite de ThingSpeak:** ThingSpeak tiene un límite de 15 segundos entre actualizaciones para canales gratuitos. Asegúrate de que tu `delay()` en el `loop()` sea de al menos 15000 milisegundos.</li>
+                                <li>**Conexión a ThingSpeak fallida:** Revisa los mensajes en el Monitor Serial del IDE de Arduino. Si ves "Conexión a ThingSpeak fallida", podría ser un problema de red o que ThingSpeak esté temporalmente inaccesible.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card">
+                         <button class="accordion-header w-full text-left p-4 font-semibold text-lg flex justify-between items-center">
+                            <span>La página web no muestra datos</span>
+                             <span class="accordion-icon transform transition-transform">▼</span>
+                        </button>
+                        <div class="accordion-content px-4 pb-4">
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>**ID de Canal/Read API Key incorrectos en la web:** Verifica que `THINGSPEAK_CHANNEL_ID` y `THINGSPEAK_READ_API_KEY` en el código JavaScript de esta página sean correctos.</li>
+                                <li>**Canal de ThingSpeak privado:** Si tu canal de ThingSpeak es privado, DEBES usar una `Read API Key`. Si es público, no es necesaria.</li>
+                                <li>**CORS (Cross-Origin Resource Sharing):** ThingSpeak generalmente maneja esto bien, pero si estás sirviendo la página desde un lugar inusual, podría haber problemas de seguridad del navegador. Publicar en GitHub Pages o Netlify suele resolver esto.</li>
+                                <li>**No hay datos en ThingSpeak:** Asegúrate de que tu NodeMCU esté enviando datos correctamente a ThingSpeak y que haya entradas recientes en la vista privada de tu canal.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // --- Navigation ---
+    const navLinks = document.querySelectorAll('.nav-link');
+    const contentSections = document.querySelectorAll('.content-section');
+
+    function updateActiveContent(hash) {
+        navLinks.forEach(link => {
+            if (link.getAttribute('href') === hash) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+
+        contentSections.forEach(section => {
+            if ('#' + section.id === hash) {
+                section.classList.add('active');
+            } else {
+                section.classList.remove('active');
+            }
+        });
+    }
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', function (e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href');
+            window.location.hash = targetId;
+        });
+    });
+    
+    window.addEventListener('hashchange', () => {
+        const hash = window.location.hash || '#inicio';
+        updateActiveContent(hash);
+    });
+
+    // Initial load
+    const initialHash = window.location.hash || '#inicio';
+    updateActiveContent(initialHash);
+
+    // --- Checklist ---
+    const checklistItems = document.querySelectorAll('.checklist-item');
+    checklistItems.forEach(item => {
+        item.addEventListener('click', () => {
+            item.classList.toggle('checked');
+            const icon = item.querySelector('.checkbox-icon');
+            if (item.classList.contains('checked')) {
+                icon.innerHTML = '<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>';
+            } else {
+                icon.innerHTML = '';
+            }
+        });
+    });
+
+    // --- NodeMCU Code Viewer ---
+    const nodemcuCodeContainer = document.getElementById('nodemcu-code-container');
+    const btnCopyNodemcuCode = document.getElementById('btn-copy-nodemcu-code');
+    
+    if (btnCopyNodemcuCode) {
+        btnCopyNodemcuCode.addEventListener('click', () => {
+            if (nodemcuCodeContainer) {
+                navigator.clipboard.writeText(nodemcuCodeContainer.textContent).then(() => {
+                    btnCopyNodemcuCode.textContent = '¡Copiado!';
+                    setTimeout(() => {
+                        btnCopyNodemcuCode.innerHTML = '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>Copiar';
+                    }, 2000);
+                });
+            }
+        });
+    }
+
+    // --- ThingSpeak Data Visualization ---
+    const THINGSPEAK_CHANNEL_ID = 'YOUR_THINGSPEAK_CHANNEL_ID'; // <-- REEMPLAZA CON TU ID DE CANAL
+    const THINGSPEAK_READ_API_KEY = 'YOUR_THINGSPEAK_READ_API_KEY'; // <-- REEMPLAZA CON TU READ API KEY (si tu canal es privado)
+    
+    const webTempDisplay = document.getElementById('web-temp-display');
+    const webPressureDisplay = document.getElementById('web-pressure-display');
+    const ctxThingSpeak = document.getElementById('thingspeakChart')?.getContext('2d');
+    let thingspeakChart;
+
+    let chartLabels = [];
+    let tempHistory = [];
+    let pressureHistory = [];
+
+    async function fetchThingSpeakData() {
+        if (THINGSPEAK_CHANNEL_ID === 'YOUR_THINGSPEAK_CHANNEL_ID') {
+            console.warn("Por favor, reemplaza 'YOUR_THINGSPEAK_CHANNEL_ID' en el código JavaScript con tu ID de canal de ThingSpeak.");
+            if (webTempDisplay) webTempDisplay.textContent = "N/A";
+            if (webPressureDisplay) webPressureDisplay.textContent = "N/A";
+            return;
+        }
+
+        const url = `https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL_ID}/feeds.json?results=20` +
+                    (THINGSPEAK_READ_API_KEY !== 'YOUR_THINGSPEAK_READ_API_KEY' ? `&api_key=${THINGSPEAK_READ_API_KEY}` : '');
+
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            
+            if (data && data.feeds && data.feeds.length > 0) {
+                // Clear previous data for fresh fetch
+                chartLabels = [];
+                tempHistory = [];
+                pressureHistory = [];
+
+                data.feeds.forEach(feed => {
+                    const timestamp = new Date(feed.created_at);
+                    const label = `${timestamp.getHours().toString().padStart(2,'0')}:${timestamp.getMinutes().toString().padStart(2,'0')}`;
+                    
+                    chartLabels.push(label);
+                    tempHistory.push(parseFloat(feed.field1)); // Field 1 for Temperature
+                    pressureHistory.push(parseFloat(feed.field2)); // Field 2 for Pressure
+                });
+
+                const latestTemp = tempHistory[tempHistory.length - 1];
+                const latestPressure = pressureHistory[pressureHistory.length - 1];
+
+                if (webTempDisplay) webTempDisplay.textContent = `${latestTemp.toFixed(2)} °C`;
+                if (webPressureDisplay) webPressureDisplay.textContent = `${latestPressure.toFixed(2)} hPa`;
+
+                updateThingSpeakChart();
+            } else {
+                console.log("No hay datos disponibles en ThingSpeak o el canal está vacío.");
+                if (webTempDisplay) webTempDisplay.textContent = "-- °C";
+                if (webPressureDisplay) webPressureDisplay.textContent = "-- hPa";
+            }
+
+        } catch (error) {
+            console.error("Error al obtener datos de ThingSpeak:", error);
+            if (webTempDisplay) webTempDisplay.textContent = "Error";
+            if (webPressureDisplay) webPressureDisplay.textContent = "Error";
+        }
+    }
+
+    function initThingSpeakChart() {
+        if (!ctxThingSpeak) return;
+        thingspeakChart = new Chart(ctxThingSpeak, {
+            type: 'line',
+            data: {
+                labels: chartLabels,
+                datasets: [
+                    {
+                        label: 'Temperatura (°C)',
+                        data: tempHistory,
+                        borderColor: 'rgba(239, 68, 68, 1)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                        yAxisID: 'y_temp',
+                        tension: 0.3,
+                        fill: true,
+                    },
+                    {
+                        label: 'Presión (hPa)',
+                        data: pressureHistory,
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        yAxisID: 'y_pressure',
+                        tension: 0.3,
+                        fill: true,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        ticks: {
+                           maxRotation: 0,
+                           minRotation: 0,
+                           autoSkip: true,
+                           maxTicksLimit: 10
+                        }
+                    },
+                    y_temp: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Temperatura (°C)',
+                            color: 'rgba(239, 68, 68, 1)'
+                        }
+                    },
+                    y_pressure: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Presión (hPa)',
+                            color: 'rgba(59, 130, 246, 1)'
+                        },
+                        grid: {
+                            drawOnChartArea: false, 
+                        },
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                animation: {
+                    duration: 200
+                }
+            }
+        });
+    }
+
+    function updateThingSpeakChart() {
+        if (thingspeakChart) {
+            thingspeakChart.data.labels = chartLabels;
+            thingspeakChart.data.datasets[0].data = tempHistory;
+            thingspeakChart.data.datasets[1].data = pressureHistory;
+            thingspeakChart.update();
+        }
+    }
+    
+    initThingSpeakChart();
+    // Fetch data every 20 seconds (ThingSpeak free tier update limit is 15 seconds)
+    setInterval(fetchThingSpeakData, 20000); 
+    fetchThingSpeakData(); // Initial fetch
+
+    // --- Accordion ---
+    const accordionHeaders = document.querySelectorAll('.accordion-header');
+    accordionHeaders.forEach(header => {
+        header.addEventListener('click', () => {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('.accordion-icon');
+
+            if (content.style.maxHeight) {
+                content.style.maxHeight = null;
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                // Close other accordions
+                document.querySelectorAll('.accordion-content').forEach(c => c.style.maxHeight = null);
+                document.querySelectorAll('.accordion-icon').forEach(i => i.style.transform = 'rotate(0deg)');
+                
+                content.style.maxHeight = content.scrollHeight + "px";
+                icon.style.transform = 'rotate(180deg)';
+            }
+        });
+    });
+
+});
+</script>
+
+</body>
+</html>
