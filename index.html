@@ -642,7 +642,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        const url = `https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL_ID}/feeds.json?results=20` +
+        const url = `https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL_ID}/feeds.json?results=1500` +
                     (THINGSPEAK_READ_API_KEY !== 'YOUR_THINGSPEAK_READ_API_KEY' ? `&api_key=${THINGSPEAK_READ_API_KEY}` : '');
 
         try {
