@@ -4,17 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Guía Interactiva: NodeMCU, BMP280 y ThingSpeak</title>
-    <!-- Chosen Palette: Warm Neutrals & Tech Blue -->
-    <!-- Application Structure Plan: La SPA se organiza con una navegación lateral fija y un área de contenido principal dinámica, similar a la guía anterior, pero adaptada a los nuevos componentes. Las secciones incluyen: Introducción (NodeMCU, BMP280, ThingSpeak), Preparación (hardware, entorno Arduino), Código NodeMCU (explicación del código proporcionado), Configuración ThingSpeak (creación de canal, API keys), Visualización Web (donde se verán los datos en vivo desde ThingSpeak), y Ayuda (solución de problemas). Esta estructura permite un flujo de aprendizaje lógico y modular, facilitando la comprensión de cada componente del sistema. -->
-    <!-- Visualization & Content Choices:
-        - Introducción: Texto explicativo de cada componente.
-        - Preparación: Checklist interactiva para materiales, texto para configuración del IDE.
-        - Código NodeMCU: Visor de código con el código proporcionado, y botones para copiar. Se explica cada parte del código (WiFi, sensor, ThingSpeak).
-        - Configuración ThingSpeak: Texto con pasos para crear un canal y obtener API keys.
-        - Visualización Web: Medidores de texto para temperatura y presión actuales, y un gráfico de línea (Chart.js) que recupera y muestra datos históricos directamente desde ThingSpeak, proporcionando una experiencia de datos en vivo.
-        - Ayuda: Acordeón de preguntas frecuentes para problemas comunes.
-        -> Library/Method: Vanilla JS para toda la lógica de interacción y fetching de datos, Chart.js para gráficos. -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -110,7 +99,6 @@
 <body class="min-h-screen">
 
     <div class="flex flex-col md:flex-row min-h-screen">
-        <!-- Sidebar -->
         <nav class="sidebar w-full md:w-64 flex-shrink-0 p-4 border-r border-gray-200">
             <h1 class="text-2xl font-bold text-gray-800 mb-6">NodeMCU + BMP280</h1>
             <ul class="space-y-2">
@@ -124,10 +112,8 @@
             </ul>
         </nav>
 
-        <!-- Main Content -->
         <main class="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
 
-            <!-- Inicio Section -->
             <section id="inicio" class="content-section active">
                 <h2 class="text-3xl font-bold mb-4">Guía Interactiva: NodeMCU, BMP280 y ThingSpeak</h2>
                 <p class="mb-6 text-lg text-gray-600">Bienvenido a esta guía que te mostrará cómo conectar un sensor de temperatura y presión BMP280 a un NodeMCU, enviar los datos a la plataforma en la nube ThingSpeak, y luego visualizarlos en una página web. Este proyecto es ideal para iniciarse en el Internet de las Cosas (IoT) y el monitoreo remoto.</p>
@@ -158,7 +144,6 @@
                 </div>
             </section>
 
-            <!-- Preparación Section -->
             <section id="preparacion" class="content-section">
                 <h2 class="text-3xl font-bold mb-4">1. Preparación del Entorno</h2>
                 <p class="mb-6 text-lg text-gray-600">Antes de empezar a conectar y programar, necesitamos preparar el hardware y el entorno de desarrollo para tu NodeMCU.</p>
@@ -198,13 +183,11 @@
                 </div>
             </section>
             
-            <!-- Conexión Section -->
             <section id="conexion" class="content-section">
                 <h2 class="text-3xl font-bold mb-4">2. Conexión del Sensor BMP280 al NodeMCU</h2>
                  <p class="mb-6 text-lg text-gray-600">El sensor BMP280 se comunica con el NodeMCU usando el protocolo I2C, lo que simplifica mucho el cableado. Asegúrate de que tu NodeMCU esté desconectado de la alimentación antes de realizar las conexiones.</p>
 
                 <div class="flex flex-col lg:flex-row gap-8">
-                    <!-- Wiring Instructions -->
                     <div class="lg:w-1/2">
                         <div class="card p-6 h-full">
                             <h3 class="text-xl font-semibold mb-4">Instrucciones de Cableado</h3>
@@ -252,7 +235,6 @@
                 </div>
             </section>
 
-            <!-- Código NodeMCU Section -->
             <section id="codigo-nodemcu" class="content-section">
                 <h2 class="text-3xl font-bold mb-4">3. Código para NodeMCU (Arduino IDE)</h2>
                 <p class="mb-6 text-lg text-gray-600">Este es el código que cargarás en tu NodeMCU. Se encarga de conectar el NodeMCU a tu red WiFi, leer los datos del sensor BMP280 (el código usa la librería BMP180, pero el principio es el mismo para temperatura y presión) y enviarlos a tu canal de ThingSpeak.</p>
@@ -266,7 +248,6 @@
                         </button>
                     </div>
                     <div id="nodemcu-code-container" class="code-block text-sm">
-                        <!-- Código NodeMCU proporcionado por el usuario -->
                         #include &lt;ESP8266WiFi.h&gt; // Librería principal para funciones WiFi en ESP8266
 #include &lt;Wire.h&gt;        // Librería para comunicación I2C (usada por el sensor BMP180)
 #include &lt;Adafruit_Sensor.h&gt; // Librería base para sensores de Adafruit
@@ -419,7 +400,6 @@ void loop() {
                 </div>
             </section>
 
-            <!-- ThingSpeak Section -->
             <section id="thingspeak" class="content-section">
                 <h2 class="text-3xl font-bold mb-4">4. Configuración de ThingSpeak</h2>
                 <p class="mb-6 text-lg text-gray-600">ThingSpeak es una plataforma de IoT que te permite recolectar y visualizar datos de tus sensores. Necesitarás crear una cuenta y un canal para que tu NodeMCU pueda enviar datos.</p>
@@ -455,7 +435,6 @@ void loop() {
                 </div>
             </section>
 
-            <!-- Visualización Section -->
             <section id="visualizacion" class="content-section">
                 <h2 class="text-3xl font-bold mb-4">5. Visualización Web de Datos</h2>
                 <p class="mb-6 text-lg text-gray-600">Esta sección muestra cómo tu página web puede conectarse a ThingSpeak para obtener y visualizar los datos en tiempo real. ¡Verás los datos de tu sensor BMP280 directamente en tu navegador!</p>
@@ -482,7 +461,6 @@ void loop() {
                 </div>
             </section>
 
-            <!-- Ayuda Section -->
             <section id="ayuda" class="content-section">
                 <h2 class="text-3xl font-bold mb-4">6. Solución de Problemas Comunes</h2>
                 <p class="mb-6 text-lg text-gray-600">Aquí te presentamos algunos problemas comunes que podrías encontrar al trabajar con NodeMCU, BMP280 y ThingSpeak, junto con sus soluciones.</p>
@@ -621,9 +599,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
   // --- ThingSpeak Data Visualization ---
+    // --- INICIO DE LA MODIFICACIÓN ---
     const THINGSPEAK_CHANNEL_ID = '1046312'; // <-- REEMPLAZA CON TU ID DE CANAL
     const THINGSPEAK_READ_API_KEY = 'K3VV9ONFFYUVVLDZ'; // <-- REEMPLAZA CON TU READ API KEY (si tu canal es privado)
-
+    const NUM_RESULTS_TO_FETCH = 1500; // <-- VARIABLE PARA CONTROLAR EL NÚMERO DE DATOS
+    // --- FIN DE LA MODIFICACIÓN ---
     
     const webTempDisplay = document.getElementById('web-temp-display');
     const webPressureDisplay = document.getElementById('web-pressure-display');
@@ -642,8 +622,11 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        const url = `https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL_ID}/feeds.json?results=1500` +
+        // --- INICIO DE LA MODIFICACIÓN ---
+        // Se usa la nueva variable NUM_RESULTS_TO_FETCH en la URL
+        const url = `https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL_ID}/feeds.json?results=${NUM_RESULTS_TO_FETCH}` +
                     (THINGSPEAK_READ_API_KEY !== 'YOUR_THINGSPEAK_READ_API_KEY' ? `&api_key=${THINGSPEAK_READ_API_KEY}` : '');
+        // --- FIN DE LA MODIFICACIÓN ---
 
         try {
             const response = await fetch(url);
@@ -806,3 +789,5 @@ document.addEventListener('DOMContentLoaded', function () {
 
 </body>
 </html>
+
+
