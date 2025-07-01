@@ -454,7 +454,13 @@ void loop() {
                 </div>
 
                 <div class="card p-6">
-                     <h3 class="text-xl font-semibold mb-4 text-center">Historial de Datos del Sensor (desde ThingSpeak)</h3>
+                    <h3 class="text-xl font-semibold mb-4 text-center">Historial de Datos del Sensor</h3>
+                    
+                    <div class="flex flex-wrap items-center justify-center gap-4 mb-6">
+                        <label for="results-input" class="font-medium">Número de lecturas a mostrar:</label>
+                        <input type="number" id="results-input" value="50" min="1" max="8000" class="w-24 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <button id="update-chart-btn" class="btn-primary px-5 py-2 rounded-md font-semibold">Actualizar Gráfico</button>
+                    </div>
                     <div class="chart-container">
                         <canvas id="thingspeakChart"></canvas>
                     </div>
@@ -598,11 +604,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-  // --- ThingSpeak Data Visualization ---
-    // --- INICIO DE LA MODIFICACIÓN ---
+    // --- ThingSpeak Data Visualization ---
     const THINGSPEAK_CHANNEL_ID = '1046312'; // <-- REEMPLAZA CON TU ID DE CANAL
     const THINGSPEAK_READ_API_KEY = 'K3VV9ONFFYUVVLDZ'; // <-- REEMPLAZA CON TU READ API KEY (si tu canal es privado)
-    const NUM_RESULTS_TO_FETCH = 1500; // <-- VARIABLE PARA CONTROLAR EL NÚMERO DE DATOS
+
+    // --- INICIO DE LA MODIFICACIÓN ---
+    // Referencias a los nuevos elementos de la UI
+    const resultsInput = document.getElementById('results-input');
+    const updateChartBtn = document.getElementById('update-chart-btn');
     // --- FIN DE LA MODIFICACIÓN ---
     
     const webTempDisplay = document.getElementById('web-temp-display');
@@ -616,15 +625,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function fetchThingSpeakData() {
         if (THINGSPEAK_CHANNEL_ID === 'YOUR_THINGSPEAK_CHANNEL_ID') {
-            console.warn("Por favor, reemplaza 'YOUR_THINGSPEAK_CHANNEL_ID' en el código JavaScript con tu ID de canal de ThingSpeak.");
+            console.warn("Por favor, reemplaza 'YOUR_THINGSPEAK_CHANNEL_ID' con tu ID de canal de ThingSpeak.");
             if (webTempDisplay) webTempDisplay.textContent = "N/A";
             if (webPressureDisplay) webPressureDisplay.textContent = "N/A";
             return;
         }
 
         // --- INICIO DE LA MODIFICACIÓN ---
-        // Se usa la nueva variable NUM_RESULTS_TO_FETCH en la URL
-        const url = `https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL_ID}/feeds.json?results=${NUM_RESULTS_TO_FETCH}` +
+        // Se lee el valor del input cada vez que se llama a la función
+        const numResults = resultsInput.value || 50; // Usar 50 como valor por defecto si el campo está vacío
+        const url = `https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL_ID}/feeds.json?results=${numResults}` +
                     (THINGSPEAK_READ_API_KEY !== 'YOUR_THINGSPEAK_READ_API_KEY' ? `&api_key=${THINGSPEAK_READ_API_KEY}` : '');
         // --- FIN DE LA MODIFICACIÓN ---
 
@@ -642,21 +652,30 @@ document.addEventListener('DOMContentLoaded', function () {
                 pressureHistory = [];
 
                 data.feeds.forEach(feed => {
-                    const timestamp = new Date(feed.created_at);
-                    const label = `${timestamp.getHours().toString().padStart(2,'0')}:${timestamp.getMinutes().toString().padStart(2,'0')}`;
-                    
-                    chartLabels.push(label);
-                    tempHistory.push(parseFloat(feed.field1)); // Field 1 for Temperature
-                    pressureHistory.push(parseFloat(feed.field2)); // Field 2 for Pressure
+                    // Validar que los campos existan y no sean nulos
+                    if(feed.field1 != null && feed.field2 != null) {
+                        const timestamp = new Date(feed.created_at);
+                        const label = `${timestamp.getHours().toString().padStart(2,'0')}:${timestamp.getMinutes().toString().padStart(2,'0')}`;
+                        
+                        chartLabels.push(label);
+                        tempHistory.push(parseFloat(feed.field1)); // Field 1 for Temperature
+                        pressureHistory.push(parseFloat(feed.field2)); // Field 2 for Pressure
+                    }
                 });
 
-                const latestTemp = tempHistory[tempHistory.length - 1];
-                const latestPressure = pressureHistory[pressureHistory.length - 1];
+                if (tempHistory.length > 0 && pressureHistory.length > 0) {
+                    const latestTemp = tempHistory[tempHistory.length - 1];
+                    const latestPressure = pressureHistory[pressureHistory.length - 1];
 
-                if (webTempDisplay) webTempDisplay.textContent = `${latestTemp.toFixed(2)} °C`;
-                if (webPressureDisplay) webPressureDisplay.textContent = `${latestPressure.toFixed(2)} hPa`;
+                    if (webTempDisplay) webTempDisplay.textContent = `${latestTemp.toFixed(2)} °C`;
+                    if (webPressureDisplay) webPressureDisplay.textContent = `${latestPressure.toFixed(2)} hPa`;
 
-                updateThingSpeakChart();
+                    updateThingSpeakChart();
+                } else {
+                     if (webTempDisplay) webTempDisplay.textContent = "-- °C";
+                     if (webPressureDisplay) webPressureDisplay.textContent = "-- hPa";
+                }
+                
             } else {
                 console.log("No hay datos disponibles en ThingSpeak o el canal está vacío.");
                 if (webTempDisplay) webTempDisplay.textContent = "-- °C";
@@ -706,7 +725,7 @@ document.addEventListener('DOMContentLoaded', function () {
                            maxRotation: 0,
                            minRotation: 0,
                            autoSkip: true,
-                           maxTicksLimit: 10
+                           maxTicksLimit: 15 // Aumentado para mejor visualización
                         }
                     },
                     y_temp: {
@@ -758,10 +777,19 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
     
+    // --- INICIO DE LA MODIFICACIÓN ---
+    // Event listener para el botón de actualizar
+    if (updateChartBtn) {
+        updateChartBtn.addEventListener('click', fetchThingSpeakData);
+    }
+    
+    // Inicialización
     initThingSpeakChart();
-    // Fetch data every 20 seconds (ThingSpeak free tier update limit is 15 seconds)
+    // La actualización automática seguirá usando el valor que esté en el input en ese momento
     setInterval(fetchThingSpeakData, 20000); 
-    fetchThingSpeakData(); // Initial fetch
+    fetchThingSpeakData(); // Carga inicial de datos
+    // --- FIN DE LA MODIFICACIÓN ---
+
 
     // --- Accordion ---
     const accordionHeaders = document.querySelectorAll('.accordion-header');
@@ -789,5 +817,3 @@ document.addEventListener('DOMContentLoaded', function () {
 
 </body>
 </html>
-
-
