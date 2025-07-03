@@ -248,50 +248,33 @@
                         </button>
                     </div>
                     <div id="nodemcu-code-container" class="code-block text-sm">
-                        #include &lt;ESP8266WiFi.h&gt; // Librería principal para funciones WiFi en ESP8266
-#include &lt;Wire.h&gt;        // Librería para comunicación I2C (usada por el sensor BMP180)
-#include &lt;Adafruit_Sensor.h&gt; // Librería base para sensores de Adafruit
-#include &lt;Adafruit_BMP085_U.h&gt; // Librería específica para el sensor BMP180/BMP085 de Adafruit
+                        #include &lt;ESP8266WiFi.h&gt; 
+#include &lt;Wire.h&gt;        
+#include &lt;Adafruit_Sensor.h&gt;
+#include &lt;Adafruit_BMP085_U.h&gt;
 
-// --- Configuración del Sensor BMP180 ---
-// Se inicializa el objeto BMP180 con un ID de sensor.
-// Este ID puede ser cualquier número, es útil si tienes varios sensores del mismo tipo.
 Adafruit_BMP085_Unified bmp = Adafruit_BMP085_Unified(10085);
 
-// --- Configuración WiFi ---
-// Define el nombre de tu red WiFi (SSID) y la contraseña.
-// Asegúrate de que estos valores coincidan exactamente con los de tu router.
-const char* ssid = "WLAN_Privado"; // Reemplaza con tu SSID
-const char* password = "Nt4i*1956"; // Reemplaza con tu Contraseña WiFi
+const char* ssid = "WLAN_Privado";
+const char* password = "Nt4i*1956"; 
 
-// --- Configuración de ThingSpeak ---
-// Define el host de la API de ThingSpeak y tu Write API Key.
-// La Write API Key es necesaria para enviar datos a tu canal.
 const char* host = "api.thingspeak.com";
-const char* apiKey = "VXSIQ503QGJY5YR9"; // Reemplaza con tu Write API Key de ThingSpeak
+const char* apiKey = "VXSIQ503QGJY5YR9";
 
-// --- Variables para el temporizador de reconexión WiFi ---
-// Tiempo de espera máximo para intentar conectar a WiFi (en milisegundos).
-const long connectionTimeoutMs = 30000; // 30 segundos
+const long connectionTimeoutMs = 30000;
 
 void setup() {
-    // Inicia la comunicación serial a 115200 baudios para depuración.
     Serial.begin(115200);
-    delay(10); // Pequeña pausa para asegurar que el Serial esté listo.
+    delay(10); 
 
     Serial.println("\nIniciando NodeMCU...");
 
-    // --- Inicialización WiFi ---
-    // Establece el modo WiFi a estación (STA), lo que permite que el NodeMCU
-    // se conecte a un punto de acceso existente (tu router).
     WiFi.mode(WIFI_STA);
 
-    // Inicia el proceso de conexión WiFi con las credenciales proporcionadas.
     WiFi.begin(ssid, password);
     Serial.print("Intentando conectar a WiFi con SSID: ");
     Serial.println(ssid);
 
-    // Bucle para esperar la conexión WiFi.
     long startTime = millis();
     while (WiFi.status() != WL_CONNECTED && millis() - startTime < connectionTimeoutMs) {
         delay(500);
@@ -307,19 +290,16 @@ void setup() {
         Serial.println("Por favor, verifica el SSID y la contraseña, o el alcance del router.");
     }
 
-    // --- Inicialización del Sensor BMP180 ---
-    // Intenta iniciar la comunicación con el sensor BMP180.
     if (!bmp.begin()) {
         Serial.println("Error: No se detecta el sensor BMP180. Revisa las conexiones I2C (SDA, SCL).");
         Serial.println("Asegúrate de que el sensor esté correctamente cableado y alimentado.");
-        while (1); // Detiene la ejecución si el sensor no es detectado.
+        while (1);
     } else {
         Serial.println("Sensor BMP180 detectado y listo.");
     }
 }
 
 void loop() {
-    // Asegúrate de que el WiFi esté conectado antes de intentar enviar datos.
     if (WiFi.status() != WL_CONNECTED) {
         Serial.println("WiFi desconectado. Intentando reconectar...");
         WiFi.begin(ssid, password);
@@ -339,7 +319,6 @@ void loop() {
         }
     }
 
-    // --- Lectura del Sensor BMP180 ---
     sensors_event_t event;
     bmp.getEvent(&event);
 
@@ -353,7 +332,6 @@ void loop() {
         Serial.print(event.pressure);
         Serial.println(" hPa");
 
-        // --- Envío de datos a ThingSpeak ---
         WiFiClient client;
         const int httpPort = 80;
 
@@ -384,17 +362,17 @@ void loop() {
         Serial.println("Error: No se pudo leer el sensor BMP180.");
     }
 
-    delay(15000); // Retraso de 15 segundos antes de la próxima actualización.
+    delay(15000);
 }
                     </div>
                     <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                         <h4 class="font-semibold text-blue-800 mb-2">Explicación del Código:</h4>
                         <ul class="list-disc list-inside text-blue-700 space-y-2">
-                            <li>**Librerías:** Incluye librerías para WiFi (`ESP8266WiFi.h`), comunicación I2C (`Wire.h`), y las librerías de Adafruit para el sensor. **Nota:** El código proporcionado usa `Adafruit_BMP085_U.h` para el BMP180/BMP085. Si tu sensor es BMP280, la lógica es similar, pero podrías usar `Adafruit_BMP280.h` si prefieres la librería específica.</li>
-                            <li>**Configuración WiFi:** Define tu `ssid` (nombre de la red WiFi) y `password` (contraseña). ¡Asegúrate de reemplazarlos con los tuyos!</li>
+                            <li>**Librerías:** Incluye librerías para WiFi (`ESP8266WiFi.h`), comunicación I2C (`Wire.h`), y las librerías de Adafruit para el sensor.</li>
+                            <li>**Configuración WiFi:** Define tu `ssid` (nombre de la red WiFi) y `password` (contraseña).</li>
                             <li>**Configuración ThingSpeak:** Define el `host` de ThingSpeak y tu `apiKey` (la Write API Key de tu canal).</li>
-                            <li>**`setup()`:** Se ejecuta una vez al inicio. Inicializa la comunicación serial, intenta conectar a WiFi y luego inicializa el sensor BMP180. Si la conexión WiFi o el sensor fallan, el programa lo indicará.</li>
-                            <li>**`loop()`:** Se ejecuta repetidamente. Primero, verifica la conexión WiFi y, si es necesario, intenta reconectar. Luego, lee la temperatura y la presión del sensor. Finalmente, construye una URL con los datos y realiza una petición HTTP GET a ThingSpeak para enviar los valores. Hay un retraso de 15 segundos entre cada envío.</li>
+                            <li>**`setup()`:** Inicializa la comunicación serial, conecta a WiFi e inicializa el sensor.</li>
+                            <li>**`loop()`:** Lee el sensor y envía los datos a ThingSpeak cada 15 segundos.</li>
                         </ul>
                     </div>
                 </div>
@@ -410,36 +388,27 @@ void loop() {
                         <li>**Crear una Cuenta:** Ve a <a href="https://thingspeak.com/login" target="_blank" class="text-blue-600 hover:underline">ThingSpeak.com</a> y crea una cuenta gratuita.</li>
                         <li>**Crear un Nuevo Canal:**
                             <ul>
-                                <li>Una vez logueado, ve a `Channels > My Channels`.</li>
-                                <li>Haz clic en `New Channel`.</li>
+                                <li>Ve a `Channels > My Channels` y haz clic en `New Channel`.</li>
                                 <li>**Nombre:** Dale un nombre a tu canal (ej. "Estación Meteorológica NodeMCU").</li>
-                                <li>**Campos (Fields):** Define al menos dos campos:
-                                    <ul>
-                                        <li>`Field 1`: "Temperatura (°C)"</li>
-                                        <li>`Field 2`: "Presión (hPa)"</li>
-                                    </ul>
-                                </li>
-                                <li>(Opcional) Puedes añadir una descripción y etiquetas.</li>
+                                <li>**Campos (Fields):** Habilita `Field 1` para "Temperatura (°C)" y `Field 2` para "Presión (hPa)".</li>
                                 <li>Haz clic en `Save Channel`.</li>
                             </ul>
                         </li>
                         <li>**Obtener tus API Keys:**
                             <ul>
-                                <li>Después de crear el canal, ve a la pestaña `API Keys` de tu canal.</li>
-                                <li>Necesitarás la **Write API Key** para el código de tu NodeMCU. Cópiala y pégala en la variable `apiKey` del código Arduino.</li>
-                                <li>Si quieres leer los datos desde tu página web y tu canal es privado, también necesitarás la **Read API Key**.</li>
+                                <li>En la pestaña `API Keys` de tu canal, copia la **Write API Key** para el código de tu NodeMCU.</li>
+                                <li>También necesitarás la **Read API Key** para tu página web si el canal es privado.</li>
                             </ul>
                         </li>
-                        <li>**Configurar Privacidad (Opcional):** En la pestaña `Public View` o `Share`, puedes hacer tu canal público si deseas que la página web pueda leer los datos sin una Read API Key.</li>
                     </ol>
                 </div>
             </section>
 
             <section id="visualizacion" class="content-section">
                 <h2 class="text-3xl font-bold mb-4">5. Visualización Web de Datos</h2>
-                <p class="mb-6 text-lg text-gray-600">Esta sección muestra cómo tu página web puede conectarse a ThingSpeak para obtener y visualizar los datos en tiempo real. ¡Verás los datos de tu sensor BMP280 directamente en tu navegador!</p>
+                <p class="mb-6 text-lg text-gray-600">Esta sección muestra cómo tu página web puede conectarse a ThingSpeak para obtener y visualizar los datos en tiempo real.</p>
                 <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-6">
-                    <p class="text-yellow-800"><strong class="font-semibold">¡Configuración Necesaria!</strong> Para que esta sección funcione, necesitarás reemplazar <code>YOUR_THINGSPEAK_CHANNEL_ID</code> con el ID de tu canal de ThingSpeak y <code>YOUR_THINGSPEAK_READ_API_KEY</code> con tu Read API Key (si tu canal es privado) en el código JavaScript de esta página.</p>
+                    <p class="text-yellow-800"><strong class="font-semibold">¡Configuración Necesaria!</strong> Reemplaza los valores de `THINGSPEAK_CHANNEL_ID` y `THINGSPEAK_READ_API_KEY` en el código JavaScript.</p>
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -457,10 +426,11 @@ void loop() {
                     <h3 class="text-xl font-semibold mb-4 text-center">Historial de Datos del Sensor</h3>
                     
                     <div class="flex flex-wrap items-center justify-center gap-4 mb-6">
-                        <label for="results-input" class="font-medium">Número de lecturas a mostrar:</label>
-                        <input type="number" id="results-input" value="50" min="1" max="8000" class="w-24 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label for="results-input" class="font-medium">Número de lecturas:</label>
+                        <input type="number" id="results-input" value="50" min="1" max="8000" class="w-24 p-2 border border-gray-300 rounded-md">
                         <button id="update-chart-btn" class="btn-primary px-5 py-2 rounded-md font-semibold">Actualizar Gráfico</button>
                     </div>
+
                     <div class="chart-container">
                         <canvas id="thingspeakChart"></canvas>
                     </div>
@@ -469,7 +439,7 @@ void loop() {
 
             <section id="ayuda" class="content-section">
                 <h2 class="text-3xl font-bold mb-4">6. Solución de Problemas Comunes</h2>
-                <p class="mb-6 text-lg text-gray-600">Aquí te presentamos algunos problemas comunes que podrías encontrar al trabajar con NodeMCU, BMP280 y ThingSpeak, junto con sus soluciones.</p>
+                <p class="mb-6 text-lg text-gray-600">Aquí te presentamos algunos problemas comunes y sus soluciones.</p>
 
                 <div class="space-y-4" id="accordion-container">
                     <div class="card">
@@ -478,24 +448,21 @@ void loop() {
                             <span class="accordion-icon transform transition-transform">▼</span>
                         </button>
                         <div class="accordion-content px-4 pb-4">
-                            <ul class="list-disc list-inside mt-2 space-y-1">
-                                <li>**SSID/Contraseña incorrectos:** Verifica que el `ssid` y `password` en tu código Arduino coincidan exactamente con tu red WiFi (mayúsculas, minúsculas, caracteres especiales).</li>
-                                <li>**Fuera de alcance:** Asegúrate de que el NodeMCU esté lo suficientemente cerca de tu router.</li>
-                                <li>**Problemas de router:** Reinicia tu router WiFi.</li>
-                                <li>**Firewall:** Asegúrate de que tu red no esté bloqueando las conexiones salientes del NodeMCU.</li>
+                             <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>Verifica que el `ssid` y `password` en tu código son correctos.</li>
+                                <li>Asegúrate de que el NodeMCU esté cerca de tu router.</li>
                             </ul>
                         </div>
                     </div>
                     <div class="card">
                          <button class="accordion-header w-full text-left p-4 font-semibold text-lg flex justify-between items-center">
-                            <span>Error: "No se detecta el sensor BMP180"</span>
+                            <span>Error: "No se detecta el sensor"</span>
                             <span class="accordion-icon transform transition-transform">▼</span>
                         </button>
                         <div class="accordion-content px-4 pb-4">
                             <ul class="list-disc list-inside mt-2 space-y-1">
-                                <li>**Cableado I2C incorrecto:** Revisa que SDA y SCL estén conectados a D2 y D1 respectivamente, y que VCC y GND estén correctamente alimentados.</li>
-                                <li>**Sensor defectuoso:** Si el cableado es correcto, el sensor podría estar dañado.</li>
-                                <li>**Dirección I2C:** Aunque el código no la especifica directamente, por defecto `Wire.begin()` y las librerías buscan la dirección estándar. Si tu sensor tiene una dirección diferente (ej. 0x77 vs 0x76), podrías necesitar modificar la inicialización del sensor en el código Arduino para especificarla.</li>
+                                <li>Revisa el cableado I2C (SDA y SCL).</li>
+                                <li>Confirma que el sensor esté bien alimentado (VCC y GND).</li>
                             </ul>
                         </div>
                     </div>
@@ -506,10 +473,8 @@ void loop() {
                         </button>
                         <div class="accordion-content px-4 pb-4">
                             <ul class="list-disc list-inside mt-2 space-y-1">
-                                <li>**Write API Key incorrecta:** Copia y pega la `Write API Key` de tu canal de ThingSpeak EXACTAMENTE como aparece.</li>
-                                <li>**ID de canal incorrecto:** Asegúrate de que tu NodeMCU esté enviando datos al ID de canal correcto (aunque esto se maneja internamente por la API Key).</li>
-                                <li>**Límite de ThingSpeak:** ThingSpeak tiene un límite de 15 segundos entre actualizaciones para canales gratuitos. Asegúrate de que tu `delay()` en el `loop()` sea de al menos 15000 milisegundos.</li>
-                                <li>**Conexión a ThingSpeak fallida:** Revisa los mensajes en el Monitor Serial del IDE de Arduino. Si ves "Conexión a ThingSpeak fallida", podría ser un problema de red o que ThingSpeak esté temporalmente inaccesible.</li>
+                                <li>Verifica que tu `Write API Key` sea correcta.</li>
+                                <li>Recuerda el límite de 15 segundos de ThingSpeak entre actualizaciones.</li>
                             </ul>
                         </div>
                     </div>
@@ -520,10 +485,8 @@ void loop() {
                         </button>
                         <div class="accordion-content px-4 pb-4">
                             <ul class="list-disc list-inside mt-2 space-y-1">
-                                <li>**ID de Canal/Read API Key incorrectos en la web:** Verifica que `THINGSPEAK_CHANNEL_ID` y `THINGSPEAK_READ_API_KEY` en el código JavaScript de esta página sean correctos.</li>
-                                <li>**Canal de ThingSpeak privado:** Si tu canal de ThingSpeak es privado, DEBES usar una `Read API Key`. Si es público, no es necesaria.</li>
-                                <li>**CORS (Cross-Origin Resource Sharing):** ThingSpeak generalmente maneja esto bien, pero si estás sirviendo la página desde un lugar inusual, podría haber problemas de seguridad del navegador. Publicar en GitHub Pages o Netlify suele resolver esto.</li>
-                                <li>**No hay datos en ThingSpeak:** Asegúrate de que tu NodeMCU esté enviando datos correctamente a ThingSpeak y que haya entradas recientes en la vista privada de tu canal.</li>
+                                <li>Verifica `THINGSPEAK_CHANNEL_ID` y `THINGSPEAK_READ_API_KEY` en el script.</li>
+                                <li>Si tu canal es privado, la `Read API Key` es obligatoria.</li>
                             </ul>
                         </div>
                     </div>
@@ -534,158 +497,91 @@ void loop() {
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // --- Navigation ---
     const navLinks = document.querySelectorAll('.nav-link');
     const contentSections = document.querySelectorAll('.content-section');
 
     function updateActiveContent(hash) {
-        navLinks.forEach(link => {
-            if (link.getAttribute('href') === hash) {
-                link.classList.add('active');
-            } else {
-                link.classList.remove('active');
-            }
-        });
-
-        contentSections.forEach(section => {
-            if ('#' + section.id === hash) {
-                section.classList.add('active');
-            } else {
-                section.classList.remove('active');
-            }
-        });
+        navLinks.forEach(link => link.classList.toggle('active', link.getAttribute('href') === hash));
+        contentSections.forEach(section => section.classList.toggle('active', '#' + section.id === hash));
     }
 
     navLinks.forEach(link => {
         link.addEventListener('click', function (e) {
             e.preventDefault();
-            const targetId = this.getAttribute('href');
-            window.location.hash = targetId;
+            window.location.hash = this.getAttribute('href');
         });
     });
     
-    window.addEventListener('hashchange', () => {
-        const hash = window.location.hash || '#inicio';
-        updateActiveContent(hash);
-    });
+    window.addEventListener('hashchange', () => updateActiveContent(window.location.hash || '#inicio'));
+    updateActiveContent(window.location.hash || '#inicio');
 
-    // Initial load
-    const initialHash = window.location.hash || '#inicio';
-    updateActiveContent(initialHash);
-
-    // --- Checklist ---
-    const checklistItems = document.querySelectorAll('.checklist-item');
-    checklistItems.forEach(item => {
+    document.querySelectorAll('.checklist-item').forEach(item => {
         item.addEventListener('click', () => {
             item.classList.toggle('checked');
             const icon = item.querySelector('.checkbox-icon');
-            if (item.classList.contains('checked')) {
-                icon.innerHTML = '<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>';
-            } else {
-                icon.innerHTML = '';
-            }
+            icon.innerHTML = item.classList.contains('checked') ? '<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>' : '';
         });
     });
 
-    // --- NodeMCU Code Viewer ---
-    const nodemcuCodeContainer = document.getElementById('nodemcu-code-container');
     const btnCopyNodemcuCode = document.getElementById('btn-copy-nodemcu-code');
-    
     if (btnCopyNodemcuCode) {
         btnCopyNodemcuCode.addEventListener('click', () => {
-            if (nodemcuCodeContainer) {
-                navigator.clipboard.writeText(nodemcuCodeContainer.textContent).then(() => {
-                    btnCopyNodemcuCode.textContent = '¡Copiado!';
-                    setTimeout(() => {
-                        btnCopyNodemcuCode.innerHTML = '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>Copiar';
-                    }, 2000);
-                });
-            }
+            const code = document.getElementById('nodemcu-code-container').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                btnCopyNodemcuCode.textContent = '¡Copiado!';
+                setTimeout(() => {
+                    btnCopyNodemcuCode.innerHTML = '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>Copiar';
+                }, 2000);
+            });
         });
     }
 
-    // --- ThingSpeak Data Visualization ---
-    const THINGSPEAK_CHANNEL_ID = '1046312'; // <-- REEMPLAZA CON TU ID DE CANAL
-    const THINGSPEAK_READ_API_KEY = 'K3VV9ONFFYUVVLDZ'; // <-- REEMPLAZA CON TU READ API KEY (si tu canal es privado)
+    const THINGSPEAK_CHANNEL_ID = '1046312';
+    const THINGSPEAK_READ_API_KEY = 'K3VV9ONFFYUVVLDZ';
 
-    // --- INICIO DE LA MODIFICACIÓN ---
-    // Referencias a los nuevos elementos de la UI
     const resultsInput = document.getElementById('results-input');
     const updateChartBtn = document.getElementById('update-chart-btn');
-    // --- FIN DE LA MODIFICACIÓN ---
     
     const webTempDisplay = document.getElementById('web-temp-display');
     const webPressureDisplay = document.getElementById('web-pressure-display');
     const ctxThingSpeak = document.getElementById('thingspeakChart')?.getContext('2d');
     let thingspeakChart;
 
-    let chartLabels = [];
-    let tempHistory = [];
-    let pressureHistory = [];
-
     async function fetchThingSpeakData() {
         if (THINGSPEAK_CHANNEL_ID === 'YOUR_THINGSPEAK_CHANNEL_ID') {
-            console.warn("Por favor, reemplaza 'YOUR_THINGSPEAK_CHANNEL_ID' con tu ID de canal de ThingSpeak.");
-            if (webTempDisplay) webTempDisplay.textContent = "N/A";
-            if (webPressureDisplay) webPressureDisplay.textContent = "N/A";
+            console.warn("Por favor, reemplaza 'YOUR_THINGSPEAK_CHANNEL_ID'.");
             return;
         }
 
-        // --- INICIO DE LA MODIFICACIÓN ---
-        // Se lee el valor del input cada vez que se llama a la función
-        const numResults = resultsInput.value || 50; // Usar 50 como valor por defecto si el campo está vacío
+        const numResults = resultsInput.value || 50;
         const url = `https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL_ID}/feeds.json?results=${numResults}` +
-                    (THINGSPEAK_READ_API_KEY !== 'YOUR_THINGSPEAK_READ_API_KEY' ? `&api_key=${THINGSPEAK_READ_API_KEY}` : '');
-        // --- FIN DE LA MODIFICACIÓN ---
+                    (THINGSPEAK_READ_API_KEY ? `&api_key=${THINGSPEAK_READ_API_KEY}` : '');
 
         try {
             const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const data = await response.json();
             
             if (data && data.feeds && data.feeds.length > 0) {
-                // Clear previous data for fresh fetch
-                chartLabels = [];
-                tempHistory = [];
-                pressureHistory = [];
+                const labels = [], tempHistory = [], pressureHistory = [];
 
                 data.feeds.forEach(feed => {
-                    // Validar que los campos existan y no sean nulos
                     if(feed.field1 != null && feed.field2 != null) {
                         const timestamp = new Date(feed.created_at);
-                        const label = `${timestamp.getHours().toString().padStart(2,'0')}:${timestamp.getMinutes().toString().padStart(2,'0')}`;
-                        
-                        chartLabels.push(label);
-                        tempHistory.push(parseFloat(feed.field1)); // Field 1 for Temperature
-                        pressureHistory.push(parseFloat(feed.field2)); // Field 2 for Pressure
+                        labels.push(`${timestamp.getHours().toString().padStart(2,'0')}:${timestamp.getMinutes().toString().padStart(2,'0')}`);
+                        tempHistory.push(parseFloat(feed.field1));
+                        pressureHistory.push(parseFloat(feed.field2));
                     }
                 });
 
-                if (tempHistory.length > 0 && pressureHistory.length > 0) {
-                    const latestTemp = tempHistory[tempHistory.length - 1];
-                    const latestPressure = pressureHistory[pressureHistory.length - 1];
-
-                    if (webTempDisplay) webTempDisplay.textContent = `${latestTemp.toFixed(2)} °C`;
-                    if (webPressureDisplay) webPressureDisplay.textContent = `${latestPressure.toFixed(2)} hPa`;
-
-                    updateThingSpeakChart();
-                } else {
-                     if (webTempDisplay) webTempDisplay.textContent = "-- °C";
-                     if (webPressureDisplay) webPressureDisplay.textContent = "-- hPa";
+                if (tempHistory.length > 0) {
+                    webTempDisplay.textContent = `${tempHistory[tempHistory.length - 1].toFixed(2)} °C`;
+                    webPressureDisplay.textContent = `${pressureHistory[pressureHistory.length - 1].toFixed(2)} hPa`;
+                    updateThingSpeakChart(labels, tempHistory, pressureHistory);
                 }
-                
-            } else {
-                console.log("No hay datos disponibles en ThingSpeak o el canal está vacío.");
-                if (webTempDisplay) webTempDisplay.textContent = "-- °C";
-                if (webPressureDisplay) webPressureDisplay.textContent = "-- hPa";
             }
-
         } catch (error) {
             console.error("Error al obtener datos de ThingSpeak:", error);
-            if (webTempDisplay) webTempDisplay.textContent = "Error";
-            if (webPressureDisplay) webPressureDisplay.textContent = "Error";
         }
     }
 
@@ -694,11 +590,11 @@ document.addEventListener('DOMContentLoaded', function () {
         thingspeakChart = new Chart(ctxThingSpeak, {
             type: 'line',
             data: {
-                labels: chartLabels,
+                labels: [],
                 datasets: [
                     {
                         label: 'Temperatura (°C)',
-                        data: tempHistory,
+                        data: [],
                         borderColor: 'rgba(239, 68, 68, 1)',
                         backgroundColor: 'rgba(239, 68, 68, 0.2)',
                         yAxisID: 'y_temp',
@@ -707,7 +603,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     },
                     {
                         label: 'Presión (hPa)',
-                        data: pressureHistory,
+                        data: [],
                         borderColor: 'rgba(59, 130, 246, 1)',
                         backgroundColor: 'rgba(59, 130, 246, 0.2)',
                         yAxisID: 'y_pressure',
@@ -722,90 +618,59 @@ document.addEventListener('DOMContentLoaded', function () {
                 scales: {
                     x: {
                         ticks: {
-                           maxRotation: 0,
-                           minRotation: 0,
                            autoSkip: true,
-                           maxTicksLimit: 15 // Aumentado para mejor visualización
+                           maxTicksLimit: 15
                         }
                     },
                     y_temp: {
                         type: 'linear',
                         display: true,
                         position: 'left',
-                        title: {
-                            display: true,
-                            text: 'Temperatura (°C)',
-                            color: 'rgba(239, 68, 68, 1)'
-                        }
+                        title: { display: true, text: 'Temperatura (°C)', color: 'rgba(239, 68, 68, 1)' }
                     },
                     y_pressure: {
                         type: 'linear',
                         display: true,
                         position: 'right',
-                        title: {
-                            display: true,
-                            text: 'Presión (hPa)',
-                            color: 'rgba(59, 130, 246, 1)'
-                        },
-                        grid: {
-                            drawOnChartArea: false, 
-                        },
+                        title: { display: true, text: 'Presión (hPa)', color: 'rgba(59, 130, 246, 1)' },
+                        grid: { drawOnChartArea: false },
                     }
                 },
                 plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false
-                    }
-                },
-                animation: {
-                    duration: 200
+                    legend: { position: 'top' },
+                    tooltip: { mode: 'index', intersect: false }
                 }
             }
         });
     }
 
-    function updateThingSpeakChart() {
+    function updateThingSpeakChart(labels, temp, pressure) {
         if (thingspeakChart) {
-            thingspeakChart.data.labels = chartLabels;
-            thingspeakChart.data.datasets[0].data = tempHistory;
-            thingspeakChart.data.datasets[1].data = pressureHistory;
+            thingspeakChart.data.labels = labels;
+            thingspeakChart.data.datasets[0].data = temp;
+            thingspeakChart.data.datasets[1].data = pressure;
             thingspeakChart.update();
         }
     }
     
-    // --- INICIO DE LA MODIFICACIÓN ---
-    // Event listener para el botón de actualizar
     if (updateChartBtn) {
         updateChartBtn.addEventListener('click', fetchThingSpeakData);
     }
     
-    // Inicialización
     initThingSpeakChart();
-    // La actualización automática seguirá usando el valor que esté en el input en ese momento
     setInterval(fetchThingSpeakData, 20000); 
-    fetchThingSpeakData(); // Carga inicial de datos
-    // --- FIN DE LA MODIFICACIÓN ---
+    fetchThingSpeakData();
 
-
-    // --- Accordion ---
-    const accordionHeaders = document.querySelectorAll('.accordion-header');
-    accordionHeaders.forEach(header => {
+    document.querySelectorAll('.accordion-header').forEach(header => {
         header.addEventListener('click', () => {
             const content = header.nextElementSibling;
             const icon = header.querySelector('.accordion-icon');
-
-            if (content.style.maxHeight) {
-                content.style.maxHeight = null;
-                icon.style.transform = 'rotate(0deg)';
-            } else {
-                // Close other accordions
-                document.querySelectorAll('.accordion-content').forEach(c => c.style.maxHeight = null);
-                document.querySelectorAll('.accordion-icon').forEach(i => i.style.transform = 'rotate(0deg)');
-                
+            const isOpen = content.style.maxHeight;
+            
+            document.querySelectorAll('.accordion-content').forEach(c => c.style.maxHeight = null);
+            document.querySelectorAll('.accordion-icon').forEach(i => i.style.transform = 'rotate(0deg)');
+            
+            if (!isOpen) {
                 content.style.maxHeight = content.scrollHeight + "px";
                 icon.style.transform = 'rotate(180deg)';
             }
